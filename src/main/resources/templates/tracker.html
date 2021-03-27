@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Real-time Satellite Tracker</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.5.1/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.5.1/dist/leaflet.js" ></script>
+    <script src="http://code.jquery.com/jquery-2.0.3.min.js"> </script>
+    <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+     background-image: linear-gradient(to bottom, black , darkblue);
+    }
+
+    main {
+      background: white;
+      max-width: 1010px;
+      padding: 30px 30px;
+      padding-top: 10px;
+      margin: 50px auto;
+      border-radius: 3px;
+    }
+
+    h1 {
+
+    }
+    </style>
+</head>
+<body>
+<main>
+    <h1>Sat-Tracker v. 0.1</h1>
+    <h3><span th:text="'Current satellite: ' + ${satellite}"></span></h3>
+    <h4><span th:text="'Datasource: ' + ${url}"></span></h4>
+<div align="center" id="map" style="width:950px;height:440px"></div> <!-- Put in flexbox-->
+</main>
+<script th:inline="javascript">
+/*<![CDATA[*/
+
+		var map = L.map('map', {
+			minZoom:2,
+			maxZoom:20
+			});
+
+		var longitude = -5;
+		var latitude  = -5;
+
+		var endpoint = /*[[${url}]]*/ 'default';
+
+		var cartodbAttribution = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, &copy; <a href="https://carto.com/attribution">CARTO</a>';
+
+		var positron = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png', {
+			attribution: cartodbAttribution
+		}).addTo(map);
+
+		map.setZoom(5);
+
+		function updatePositionalMarker() {
+
+			$.getJSON(endpoint, function(data) {
+
+				latitude = data['iss_position']['latitude'];
+				longitude = data['iss_position']['longitude'];
+
+				console.log('latitude = ' + latitude);
+				console.log('longitude = ' + longitude);
+
+				setPosition(latitude, longitude);
+
+				drawMarker(latitude, longitude);
+
+				}).error(function() {
+					L.popup()
+					.setLatLng(L.latLng(latitude, longitude))
+					.setContent(/*[[${url}]]*/ '<p>Connection error!<br/>API unavailable.</p>')  // Get message from Thymeleaf model. Perhaps: "Error connecting to api at: emdpoint.
+					.openOn(map);
+
+					setPosition(latitude, longitude);
+			});
+
+			setTimeout(updatePositionalMarker, 4000);
+		}
+
+		function setPosition(latitude, longitude) {
+			map.setView([latitude, longitude], map.getZoom());
+			map.flyTo(L.latLng(latitude, longitude), map.getZoom());
+		}
+
+		function drawMarker(latitude, longitude) {
+			var circle = L.circle([latitude, longitude], {
+				color: 'blue',
+				fillColor: 'blue',
+				fillOpacity: 0.25,
+				radius: 40
+				}).addTo(map);
+		}
+
+		function connectionErrorPopup() {
+					L.popup()
+					.setLatLng(L.latLng(latitude, longitude))
+					.setContent('<p>Connection error!<br/>API unavailable.</p>')  // Get message from Thymeleaf model. Perhaps: "Error connecting to api at: emdpoint.
+					.openOn(map);
+
+					setPosition(latitude, longitude);
+			}
+
+		updatePositionalMarker();
+		</script>
+</body>
+</html>
